@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path')
+const str = fs.readFileSync(path.resolve(process.argv[2])).toString('utf8');
+
+const scheme = require('../scheme');
+
+console.log(scheme(str));
