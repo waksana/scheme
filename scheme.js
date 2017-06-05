@@ -79,5 +79,5 @@ const evalue_list = list => {
 
 module.exports = str => {
   const list = parser(str);
-  return toArray(evalue_list(list));
+  return toArray(evalue_list(list), true);
 }

@@ -23,7 +23,7 @@ const fromArray = (array, recursive = false) => {
   while(i--) {
     val = array[i];
     if(recursive && isArray(val)) {
-      val = fromArray(val);
+      val = fromArray(val, true);
     }
     list = cons(val, list);
   }
@@ -36,7 +36,7 @@ const toArray = (list, recursive = false) => {
   while(list !== null) {
     let val = car(list);
     if(recursive && isList(val)) {
-      val = toArray(val);
+      val = toArray(val, true);
     }
     res.push(val);
     list = cdr(list);
