@@ -1,35 +1,24 @@
 (define Y
   (lambda (fun)
     ((lambda (f) (f f))
-     (lambda (f) (fun (lambda (x) ((f f) x))))
-    )
-  )
-)
-
-
-(define id
-  (Y
-    (lambda (s)
+     (lambda (f) (fun (lambda (x) ((f f) x)))))))
+(define add
+  (lambda (x y)
+    (cond
+      ((eq? x 0) y)
+      (else
+        (add (sub1 x) (add1 y))))))
+(define sub
+  (lambda (x y)
+    (cond
+      ((eq? y 0) x)
+      (else
+        (sub (sub1 x) (sub1 y))))))
+((Y (lambda (fib)
       (lambda (n)
         (cond
-          ((zero? n) 0)
-          (else (add1 (s (sub1 n))))
-        )
-      )
-    )
-  )
-)
-
-
-(define id2
-  (lambda (n)
-    (cond
-      ((zero? n) 0)
-      (else (add1 (id2 (sub1 1))))
-    )
-  )
-)
-
-(id 9)
-(id2 10)
-(quote (1 2 3 4 5 6 7 8 9 10))
+          ((eq? n 0) 0)
+          ((eq? n 1) 1)
+          (else
+            (add (fib (sub1 n)) (fib (sub n 2))))))))
+ 10)

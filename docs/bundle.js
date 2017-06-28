@@ -120,18 +120,7 @@ module.exports = {cons, car, cdr, fromArray, toArray, isList};
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
-
 const scheme = __webpack_require__(2);
-
-var cmd=document.getElementById("cmd");
-var bodyel=document.body;
-var focusinput = () => cmd.focus();
-var res=document.getElementById("out");
-
-bodyel.onclick=focusinput;
-bodyel.onfocus=focusinput;
-
-focusinput();
 
 const ev = str => {
   var res;
@@ -143,15 +132,18 @@ const ev = str => {
   }
   return res;
 }
-window.document.onkeydown=function(event){
-  const ec=event.keyCode;
-  if(ec===13){
-    res.innerHTML+="> "+cmd.value+"<br />";
-    res.innerHTML+=ev(cmd.value)+"<br />";
-    cmd.value="";
-    bodyel.scrollTop=bodyel.scrollHeight;
-  }
+
+var cmd = document.getElementById("code");
+var res = document.getElementById("res");
+
+function refresh() {
+  var value = ev(cmd.value);
+  if(value instanceof Array) value = value.join('\n');
+  res.value = value;
 }
+
+cmd.onkeyup = cmd.onchange = refresh;
+
 
 
 /***/ }),

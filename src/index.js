@@ -1,5 +1,10 @@
 const scheme = require('./scheme.js');
 
+function getCode() {
+  var search = (window.location.search || '').substr(1);
+  return decodeURIComponent(search);
+}
+
 const ev = str => {
   var res;
   try {
@@ -22,3 +27,5 @@ function refresh() {
 
 cmd.onkeyup = cmd.onchange = refresh;
 
+cmd.value = getCode();
+refresh();

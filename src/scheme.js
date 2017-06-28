@@ -47,7 +47,8 @@ const lists = {
     return evcond(cdr(list), table);
   },
   define: (list, table) => {
-    return table[car(list)] = value(second(list), table);
+    table[car(list)] = value(second(list), table);
+    return 'defined ' + car(list);
   }
 };
 
