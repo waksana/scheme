@@ -122,6 +122,11 @@ module.exports = {cons, car, cdr, fromArray, toArray, isList};
 
 const scheme = __webpack_require__(2);
 
+function getCode() {
+  var search = (window.location.search || '').substr(1);
+  return decodeURIComponent(search);
+}
+
 const ev = str => {
   var res;
   try {
@@ -144,6 +149,8 @@ function refresh() {
 
 cmd.onkeyup = cmd.onchange = refresh;
 
+cmd.value = getCode();
+refresh();
 
 
 /***/ }),
@@ -199,7 +206,8 @@ const lists = {
     return evcond(cdr(list), table);
   },
   define: (list, table) => {
-    return table[car(list)] = value(second(list), table);
+    table[car(list)] = value(second(list), table);
+    return 'defined ' + car(list);
   }
 };
 
