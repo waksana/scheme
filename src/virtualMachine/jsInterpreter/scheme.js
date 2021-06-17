@@ -14,7 +14,7 @@ const atomAction = (token, table) => {
   if(token in atoms) return atoms[token];
   else if(isNum(token)) return token;
   else if(token in table) return table[token];
-  else throw new Error('varible not defined ' + token);
+  else throw new Error('varible not defined ' + token + JSON.stringify(table));
 }
 
 const listAction = (list, table) => {
@@ -55,11 +55,15 @@ const lists = {
 const atoms = {
   '#f': false,
   '#t': true,
-  'eq?': (a, b) => a === b,
-  'zero?': x => x === '0',
+  'eq?': (a, b) => a == b,
+  'zero?': x => x === '0' || x === 0,
   'number?': isNum,
+  mod: (a, b) => a % b,
   add1: x => String(Number(x) + 1),
   sub1: x => String(Number(x) - 1),
+  '*': (a, b) => a * b,
+  '-': (a, b) => a - b,
+  '=': (a, b) => a == b,
   cons: cons,
   car: car,
   cdr: cdr,
