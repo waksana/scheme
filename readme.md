@@ -3,7 +3,7 @@ scheme
 
 ## plan
 
-- [ ] design virtual machine language (vml)
+- [x] design virtual machine language (vml)
 - [ ] implement a virtual machine running vml (vm)
 - [ ] interpreter.vml (elevate the vm to scheme machine)
 - [ ] compiler.ss (compile ss to vml)

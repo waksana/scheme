@@ -12,8 +12,13 @@ Datapath is composed of some registers, calculators and indicators. Registers st
 
 there a branch of registers. some of them has specific purpose, some of them can store any data you want. here is the register list.
 
-- Continue
-This register stores where the control flow shoud goto
+- exp: point to the expression to be evaluated.
+- env: evaluation environment
+- fun: procedure to be applied
+- argl: list of evaluated arguments.
+- continue: this register stores where the control flow shoud goto
+- val: returned value
+- unev: temp register for expressions
 
 #### Calculator
 
@@ -33,15 +38,15 @@ Controller is a finite state machine which controls how the datapath and stack w
 
 We can define our controller, datapath using instructions.  With a set of instructions, we can define any machine we want.
 
-- define calculators: add, sub, and, or, add, sub, mul, div, remainder.
+- define calculators: `&`, `|`, `+`, `-`, `*`, `/`, `%`
 
 - define register operations: assign, fetch.
 
-- define indicators: zero?, eq?.
+- define indicators: `=`, `>=`, `<=`, `>`, `<`.
 
 - define state transfers: goto, branch.
 
-- control stack: push, pop.
+- control stack: save, restore.
 
 ## Example
 
@@ -59,7 +64,7 @@ We can define our controller, datapath using instructions.  With a set of instru
   (registers a b t)
   (controller
     loop
-    (branch (zero? b) done)
+    (branch (= (fetch b) 0) done)
     (assign t (remainder (fetch a) (fetch b)))
     (assign a (fetch b))
     (assign b (fetch t))
@@ -83,17 +88,20 @@ We can define our controller, datapath using instructions.  With a set of instru
   (controller
     (assign continue done)
     main
-    (branch (equal? n 1) (fetch continue))
-    (push (fetch n))
-    (push (fetch continue))
+    (branch (= n 1) base)
+    (save continue)
+    (save n)
+    (assign n (- (fetch n) 1))
     (assign continue calculate)
-    (assign n (sub (fetch n) 1))
     (goto main)
     calculate
-    (assign continue (pop))
-    (assign val (pop))
-    (assign n (mul n val))
-    (goto continue)
+    (restore n)
+    (restore continue)
+    (assign val (* (fetch n) (fetch val)))
+    (goto (fetch continue))
+    base
+    (assign val (fetch n))
+    (goto (fetch continue))
     done
   ))
 ```
