@@ -1,0 +1,21 @@
+(define-machine factorial
+  (registers n val)
+  (controller
+    (assign continue done)
+    main
+    (branch (= n 1) base)
+    (save continue)
+    (save n)
+    (assign n (- (fetch n) 1))
+    (assign continue calculate)
+    (goto main)
+    calculate
+    (restore n)
+    (restore continue)
+    (assign val (* (fetch n) (fetch val)))
+    (goto (fetch continue))
+    base
+    (assign val (fetch n))
+    (goto (fetch continue))
+    done
+  ))

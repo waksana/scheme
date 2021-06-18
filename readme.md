@@ -3,9 +3,9 @@ scheme
 
 ## plan
 
-- [x] design virtual machine language (vml)
-- [ ] implement a virtual machine running vml (vm)
-- [ ] interpreter.vml (elevate the vm to scheme machine)
-- [ ] compiler.ss (compile ss to vml)
-- [x] interpreter.ss
-- [ ] compile scheme-interpreter.ss into scheme-interpreter.vml
+- [x] vm.md: design virtual machine language
+- [ ] vm.js: implement a virtual machine running vml 
+- [ ] interpreter.vml: elevate the vm to scheme machine
+- [x] interpreter.js: scheme machine in js
+- [x] interpreter.ss: scheme machine in scheme
+- [ ] compiler.ss: compile ss to vml
