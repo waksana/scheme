@@ -1,40 +1,36 @@
-const {car, cdr, cons, fromArray, toArray} = require('./list');
 const extend_table = require('./context');
-const parser = require('./parser');
-
-const second = l => car(cdr(l));
-const isNum = token => !isNaN(Number(token));
+const parser = require('../utils/parser');
 
 const value = (exp, table = {}) => {
-  if(typeof exp == 'string') return atomAction(exp, table);
-  else return listAction(exp, table);
+  switch(exp.type) {
+    case 'number':
+    case 'bool': return exp.value;
+    case 'symbol':
+      Assert(exp.value in table, 'varible not defined ' + token + JSON.stringify(table));
+      return table[exp.value];
+    case 'expression': return listAction(exp.value, table);
+  }
 };
 
-const atomAction = (token, table) => {
-  if(token in atoms) return atoms[token];
-  else if(isNum(token)) return token;
-  else if(token in table) return table[token];
-  else throw new Error('varible not defined ' + token + JSON.stringify(table));
-}
-
 const listAction = (list, table) => {
-  const head = car(list);
-  if(head in lists) return lists[head](cdr(list), table);
+  const [head, ...tail] = list;
+  if(head in lists) return lists[head](tail, table);
   else return application(list, table);
 }
 
 const evlist = (list, table) => {
-  if(list == null) return null;
-  return cons(value(car(list), table), evlist(cdr(list), table));
+  if(list.length === 0) return [];
+  const [head, ...tail] = list;
+  return [value(head, table), ...evlist(tail, table)];
 }
 
 const application = (list, table) => {
-  const res = evlist(list, table);
-  return car(res)(...toArray(cdr(res)));
+  const [closure, ...params] = evlist(list, table);
+  return closure(params);
 };
 
 const lists = {
-  quote: list => car(list),
+  quote: list => list[0],
   lambda: (list, table) => (...values) => {
     const vals = fromArray(values);
     const names = car(list);
@@ -52,21 +48,13 @@ const lists = {
   }
 };
 
-const atoms = {
-  '#f': false,
-  '#t': true,
-  'eq?': (a, b) => a == b,
-  'zero?': x => x === '0' || x === 0,
-  'number?': isNum,
-  mod: (a, b) => a % b,
-  add1: x => String(Number(x) + 1),
-  sub1: x => String(Number(x) - 1),
-  '*': (a, b) => a * b,
+const prelude = {
+  '+': (a, b) => a + b,
   '-': (a, b) => a - b,
+  '*': (a, b) => a * b,
+  '/': (a, b) => a / b,
+  '%': (a, b) => a % b,
   '=': (a, b) => a == b,
-  cons: cons,
-  car: car,
-  cdr: cdr,
   'null?': x => x === null,
   'atom?': x => {
     if(x == true || x == false) return true;
@@ -75,14 +63,7 @@ const atoms = {
   },
 };
 
-var g = {};
-
-const evalue_list = list => {
-  if(list === null) return null;
-  return cons(value(car(list), g), evalue_list(cdr(list)));
-}
-
-module.exports = str => {
-  const list = parser(str);
-  return toArray(evalue_list(list), true);
+module.exports = text => {
+  const expression = parser(text);
+  return value(expression);
 }

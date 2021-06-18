@@ -62,9 +62,24 @@ const many = p => or(
   }),
   setValue([]));
 
+const isNum = token => !isNaN(Number(token));
+
+const isBool = token => token === "true" || token === "false";
+
 const symbol = exp(function*() {
   const c = yield normal;
   const cs = yield many(normal);
+  const symbolValue = [c, ...cs].join('');
+  if(isNum(symbolValue))
+    return setValue({
+      type: 'number',
+      value: Number(symbolValue),
+    })
+  if(isBool(symbolValue))
+    return setValue({
+      type: 'bool',
+      value: symbolValue === "true",
+    })
   return setValue({
     type: 'symbol',
     value: [c, ...cs].join(''),

@@ -1,9 +1,7 @@
-const {car, cdr} = require('./list');
-
-function attach(table, names, values) {
-  if(names == null) return table;
-  table[car(names)] = car(values);
-  return attach(table, cdr(names), cdr(values));
+function attach(table, [name, ...names], [value, ...values]) {
+  if(names === undefined) return table;
+  table[name] = value;
+  return attach(table, names, values);
 }
 
 module.exports = (table, names, values) => {
