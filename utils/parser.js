@@ -99,7 +99,7 @@ const expression = or(
     const otherElements = yield many(expression);
     yield element(char(')'));
     return setValue({
-      type: 'expression',
+      type: 'list',
       value: [firstElement, ...otherElements]
     })
   }));
