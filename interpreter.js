@@ -20,9 +20,6 @@ const setVal = (type, v) => {
 
 function attach(table, [name, ...names], [value, ...values]) {
   if(name === undefined) return table;
-  if(getVal('BasicToken', name) === 'fun' && value.value[0] === "primitive") {
-    throw new Error();
-  }
   table[getVal('BasicToken', name)] = value;
   return attach(table, names, values);
 }
@@ -65,12 +62,7 @@ const application = ({value: {fn, paramValues}}, runTimeTable) => {
 function evcond([head, ...tails], table) {
   const {cond, branch} = getVal('CondPair', head);
   if(getVal('BoolToken', value(cond, table))) {
-    const res = value(branch, table);
-    if(res.value[0]===8) {
-      console.log(branch, branch.value.paramValues[1].value);
-      throw new Error('f');
-    }
-    return res;
+    return value(branch, table);
   }
   return evcond(tails, table);
 };
@@ -110,7 +102,7 @@ const prelude = {
   'null?': buildNativeClosure(['List'], 'BoolToken', ls => ls.length === 0),
   'car': buildNativeClosure(['List'], 'Nowrap', ls => {Assert(ls.length > 0, "empty list"); return ls[0]}),
   'cdr': buildNativeClosure(['List'], 'List', ls => {Assert(ls.length > 0, "empty list"); return ls.slice(1)}),
-  'cons': buildNativeClosure(['Any', 'List'], 'List', (x, xs) => [x, ...xs])
+  'cons': buildNativeClosure(['Nowrap', 'List'], 'List', (x, xs) => [x, ...xs])
 };
 
 module.exports = text => {
