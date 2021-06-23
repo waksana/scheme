@@ -8,4 +8,4 @@ const fn = require(path.join(dir, scriptname));
 
 const text = fs.readFileSync(path.join(dir, filename), 'utf8');
 
-console.log(fn(text));
+console.log(JSON.stringify(fn(text), null, 2));

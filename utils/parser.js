@@ -1,110 +1,81 @@
-const resultMonad = r => Object.assign(r, {
-  flatMap(next) {
-    return this.type === "succeeded" ? next(this.content) : this;
-  }
-});
-const succeeded = (value, text) => resultMonad({
-  type: "succeeded",
-  content: { value, text },
-});
-const failed = (remainLength) => resultMonad({ type: "failed", remainLength: [remainLength] });
-const isSuccessful = result => result.type === "succeeded";
-const valueOf = (result, total) => {
-  if(isSuccessful(result)) {
-    return result.content.value;
-  }
-  throw new Error(`parse error at posision ${result.remainLength.map(v => total.length - v - 1).join(', ')}`);
-}
+const tokenizer = require('./tokenizer');
+const {valueOf, exp, or, setValue, many, sat, item} = require('./parserMonad');
 
-const parserMonad = p => Object.assign(p, {
-  flatMap(f) {
-    return parserMonad(s => this(s).flatMap(({ value, text }) => f(value)(text)));
-  }
-});
-const setValue = v => parserMonad(s => succeeded(v, s));
-const parseFailed = parserMonad(s => failed(s.length));
+const match = word => sat(({type, value}) => type === "BasicToken" && word === value, word);
 
-const item = parserMonad(s => s.length === 0 ? failed(0) : succeeded(s[0], s.slice(1)));
-const sat = p => item.flatMap(c => p(c) ? setValue(c) : parseFailed);
-const reg = r => sat(c => r.test(c));
-const char = c => sat(v => v == c);
+const isType = needType => sat(({type}) => type === needType, needType);
 
-const or = (a, b) => parserMonad(s => {
-  const resultForA = a(s);
-  if(isSuccessful(resultForA))
-    return resultForA;
-  else {
-    const resultForB = b(s);
-    if(!isSuccessful(resultForB))
-      resultForB.remainLength.concat(resultForA.remainLength);
-    return resultForB;
-  }
-});
-const exp = generator => parserMonad(s => {
-  const iterator = generator();
-  const next = ret => {
-    if (ret.done)
-      return ret.value;
-    return ret.value.flatMap(r => next(iterator.next(r)));
-  }
-  return next(iterator.next())(s);
+const openBracket = isType('OpenBracket');
+const closeBracket = isType('CloseBracket');
+const quoteBracket = isType('QuoteBracket');
+
+const quoteToken = match('quote');
+const quote = exp(function* () {
+  yield openBracket;
+  yield quoteToken;
+  const value = yield expression;
+  yield closeBracket;
+  return setValue({ type: 'Quote', value });
 });
 
-//Parser Char
-const space = reg(/\s/);
-const normal = reg(/[^\(\)\s]/)
-
-const many = p => or(
-  exp(function*() {
-    const v = yield p;
-    const vs = yield many(p);
-    return setValue([v, ...vs]);
-  }),
-  setValue([]));
-
-const isNum = token => !isNaN(Number(token));
-
-const isBool = token => token === "true" || token === "false";
-
-const symbol = exp(function*() {
-  const c = yield normal;
-  const cs = yield many(normal);
-  const symbolValue = [c, ...cs].join('');
-  if(isNum(symbolValue))
-    return setValue({
-      type: 'number',
-      value: Number(symbolValue),
-    })
-  if(isBool(symbolValue))
-    return setValue({
-      type: 'bool',
-      value: symbolValue === "true",
-    })
-  return setValue({
-    type: 'symbol',
-    value: [c, ...cs].join(''),
-  })
+const lambdaToken = matchToken('lambda');
+const lambda = exp(function* () {
+  yield openBracket;
+  yield lambdaToken;
+  const params = yield basicTokenList;
+  const body = yield scheme;
+  yield closeBracket;
+  return setValue({ type: 'lambda', value: { params, body } });
 });
 
-const element = p => exp(function* () {
-  yield many(space)
-  return p;
+const condPair = exp(function* () {
+  yield openBracket;
+  const cond = yield scheme;
+  const branch = yield scheme;
+  yield closeBracket;
+  return setValue({ type: 'condPair', value: { cond, branch } });
 });
 
-const expression = or(
-  element(symbol),
-  exp(function* () {
-    yield element(char('('));
-    const firstElement = yield expression;
-    const otherElements = yield many(expression);
-    yield element(char(')'));
-    return setValue({
-      type: 'list',
-      value: [firstElement, ...otherElements]
-    })
-  }));
+const condToken = matchToken('cond');
+const cond = exp(function* () {
+  yield openBracket;
+  yield condToken;
+  const pairOne = yield condPair;
+  const pairs = yield many(condPair);
+  yield closeBracket;
+  return setValue({ type: 'cond', value: [pairOne, ...pairs] });
+});
 
-module.exports = function parse(text) {
-  const result = expression(text);
-  return valueOf(result);
+const defineToken = matchToken('define');
+const def = exp(function* () {
+  yield openBracket;
+  yield defineToken;
+  const name = yield basicToken;
+  const val = yield scheme;
+  yield closeBracket;
+  return setValue({ type: 'define', value: { name, val } });
+});
+
+const application = exp(function* () {
+  yield openBracket;
+  const fn = yield scheme;
+  const params = yield many(scheme);
+  yield closeBracket;
+  return setValue({ type: 'application', value: { fn, params } });
+});
+
+const scheme = or(
+  quote,
+  lambda,
+  cond,
+  def,
+  numberToken,
+  boolToken,
+  basicToken,
+  application,
+)
+
+module.exports = function (text) {
+  const result = tokenizer(text);
+  return valueOf(result, text);
 }
