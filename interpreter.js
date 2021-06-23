@@ -6,106 +6,118 @@ const Assert = (cond, message) => {
 }
 
 const getVal = (type, v) => {
-  Assert(type === v.type || type === 'any', `Need type ${type}, but got type ${v.type}`);
+  if(type == 'Nowrap')
+    return v;
+  Assert(type === v.type || type === 'Any', `Need type ${type}, but got type ${v.type}`);
   return v.value;
 }
 
-const is = (type, v) => v.type === type;
-
 const setVal = (type, v) => {
+  if(type == 'Nowrap')
+    return v;
   return {type, value: v};
 }
 
-const buildNativeClosure = (inputTypes, outputType, fn) => setVal('closure', params => {
-  Assert(inputTypes.length === params.length, 'native function param count not match');
-  const inputs = params.map((v, i) => getVal(inputTypes[i], v));
-  return outputType === 'nowrap' ? fn(...inputs) : setVal(outputType, fn(...inputs));
-});
-
-
 function attach(table, [name, ...names], [value, ...values]) {
   if(name === undefined) return table;
-  table[getVal('symbol', name)] = value;
+  if(getVal('BasicToken', name) === 'fun' && value.value[0] === "primitive") {
+    throw new Error();
+  }
+  table[getVal('BasicToken', name)] = value;
   return attach(table, names, values);
 }
 
 const extend_table = (table, names, values) => {
   var newTable = Object.create(table);
+  Assert(names.length == values.length, 'parameter count mismatch');
   return attach(newTable, names, values);
 }
 
-const car = xs => {
-  const arr = getVal('list', xs);
-  Assert(arr.length > 0, "can not get head of an empty list");
-  return arr[0];
-}
-
-const cdr = xs => {
-  const arr = getVal('list', xs);
-  Assert(arr.length > 0, "can not get tail of an empty list");
-  return setVal('list', arr.slice(1));
-}
-
-const cadr = xs => car(cdr(xs));
-
 const value = (exp, table = {}) => {
   switch(exp.type) {
-    case 'number':
-    case 'bool': return exp;
-    case 'symbol':
-      Assert(exp.value in table, `varible not defined: ${exp.value} env: ${JSON.stringify(table)}`);
+    case 'NumberToken':
+    case 'BoolToken': return exp;
+    case 'BasicToken':
+      Assert(exp.value in table, `varible not defined: ${exp.value}`);
       return table[exp.value];
-    case 'list': return listAction(exp, table);
+    case 'Quote': return exp.value;
+    case 'Lambda': return {
+      type: 'Closure',
+      value: { table, ...exp.value }
+    };
+    case 'Cond': return evcond(exp.value, table);
+    case 'Define': return table[exp.value.name.value] = value(exp.value.val, table);
+    case 'Application': return application(exp, table);
   }
 };
 
-const listAction = (list, table) => {
-  const head = car(list);
-  const tail = cdr(list);
-  var headVal;
-  if(is('symbol', head) && (headVal = getVal('symbol', head)) in lists) {
-    return lists[headVal](tail, table);
+const application = ({value: {fn, paramValues}}, runTimeTable) => {
+  const closure = value(fn, runTimeTable);
+  const values = paramValues.map(paramValue=> value(paramValue, runTimeTable));
+  if(closure.type === 'Native') {
+    return closure.fn(values);
   }
-  else return application(list, table);
+  const { table, paramNames, body } = getVal('Closure', closure);
+  const newTable = extend_table(table, getVal('BasicTokenList', paramNames), values);
+  return value(body, newTable);
+};
+
+function evcond([head, ...tails], table) {
+  const {cond, branch} = getVal('CondPair', head);
+  if(getVal('BoolToken', value(cond, table))) {
+    const res = value(branch, table);
+    if(res.value[0]===8) {
+      console.log(branch, branch.value.paramValues[1].value);
+      throw new Error('f');
+    }
+    return res;
+  }
+  return evcond(tails, table);
+};
+
+function buildNativeClosure(inputTypes, outputType, fn) {
+  return {
+    type: 'Native',
+    fn: (values) => {
+      Assert(inputTypes.length == values.length, 'parameter count mismatch');
+      const rawValues = inputTypes.map((type, i) => getVal(type, values[i]));
+      return setVal(outputType, fn(...rawValues));
+    }
+  };
 }
 
-const application = (list, table) => {
-  const [closure, ...params] = getVal('list', list).map(item => value(item, table));
-  return getVal('closure', closure)(params);
-};
-
-const lists = {
-  quote: list => list[0],
-  lambda: (list, table) => ({
-    type: 'closure',
-    value: values => value(cadr(list), extend_table(table, getVal('list', car(list)), values)),
-  }),
-  cond: function evcond(list, table) {
-    const head = car(list);
-    if(getVal('boo', value(car(head), table)))
-      return value(cadr(head), table);
-    return evcond(cdr(list), table);
-  },
-  define: (list, table) => {
-    table[getVal('symbol', car(list))] = value(cadr(list), table);
-  }
-};
-
 const prelude = {
-  'else': setVal('bool', true),
-  '+': buildNativeClosure(['number', 'number'], 'number', (a, b) => a + b),
-  '-': buildNativeClosure(['number', 'number'], 'number', (a, b) => a - b),
-  '*': buildNativeClosure(['number', 'number'], 'number', (a, b) => a * b),
-  '/': buildNativeClosure(['number', 'number'], 'number', (a, b) => a / b),
-  '%': buildNativeClosure(['number', 'number'], 'number', (a, b) => a % b),
-  '=': buildNativeClosure(['any', 'any'], 'bool', (a, b) => a === b),
-  'null?': buildNativeClosure(['list'], 'bool', ls => ls.length === 0),
-  'car': buildNativeClosure(['list'], 'nowrap', ls => {Assert(ls.length > 0, "empty list"); return ls[0]}),
-  'cdr': buildNativeClosure(['list'], 'list', ls => {Assert(ls.length > 0, "empty list"); return ls.slice(1)}),
-  'cons': buildNativeClosure(['any', 'list'], 'list', (x, xs) => [x, ...xs])
+  '#t': setVal('BoolToken', true),
+  '#f': setVal('BoolToken', false),
+  'else': setVal('BoolToken', true),
+  'atom?': buildNativeClosure(['Nowrap'], 'BoolToken', (a) => {
+    return ['NumberToken', 'BoolToken', 'BasicToken'].indexOf(a.type) >= 0;
+  }),
+  'number?': buildNativeClosure(['Nowrap'], 'BoolToken', (a) => {
+    return a.type === 'NumberToken';
+  }),
+  '+': buildNativeClosure(['NumberToken', 'NumberToken'], 'NumberToken', (a, b) => a + b),
+  'add1': buildNativeClosure(['NumberToken'], 'NumberToken', (a) => a + 1),
+  'sub1': buildNativeClosure(['NumberToken'], 'NumberToken', (a) => a - 1),
+  '-': buildNativeClosure(['NumberToken', 'NumberToken'], 'NumberToken', (a, b) => a - b),
+  '*': buildNativeClosure(['NumberToken', 'NumberToken'], 'NumberToken', (a, b) => a * b),
+  '/': buildNativeClosure(['NumberToken', 'NumberToken'], 'NumberToken', (a, b) => a / b),
+  '%': buildNativeClosure(['NumberToken', 'NumberToken'], 'NumberToken', (a, b) => a % b),
+  'mod': buildNativeClosure(['NumberToken', 'NumberToken'], 'NumberToken', (a, b) => a % b),
+  'zero?': buildNativeClosure(['NumberToken'], 'BoolToken', a => a === 0),
+  '=': buildNativeClosure(['Any', 'Any'], 'BoolToken', (a, b) => a === b),
+  'eq?': buildNativeClosure(['Any', 'Any'], 'BoolToken', (a, b) => a === b),
+  'null?': buildNativeClosure(['List'], 'BoolToken', ls => ls.length === 0),
+  'car': buildNativeClosure(['List'], 'Nowrap', ls => {Assert(ls.length > 0, "empty list"); return ls[0]}),
+  'cdr': buildNativeClosure(['List'], 'List', ls => {Assert(ls.length > 0, "empty list"); return ls.slice(1)}),
+  'cons': buildNativeClosure(['Any', 'List'], 'List', (x, xs) => [x, ...xs])
 };
 
 module.exports = text => {
-  const expression = parser(text);
-  return value(expression, prelude);
+  const expressions = parser(text);
+  return expressions.map(expression => value(expression, prelude)).map(res => {
+    if(res.type === 'Closure')
+      return '[Closure]';
+    return res;
+  });
 }

@@ -1,4 +1,0 @@
-(define gcd (lambda (a b)
-        (cond
-            ((zero? b) a)
-            (else (gcd b (mod a b))))))
