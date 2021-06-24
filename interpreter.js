@@ -1,4 +1,4 @@
-const parser = require('./utils/parser');
+const parser = require('./utils/schemeParser');
 
 const Assert = (cond, message) => {
   if(!cond)
