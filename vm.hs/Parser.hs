@@ -1,3 +1,10 @@
+module Parser (
+    instructions,
+    Instruction (..),
+    Expression (..)
+)
+where
+
 import Text.Parsec
 
 data Expression = Dest String
@@ -10,7 +17,7 @@ data Expression = Dest String
                 | Mul Expression Expression
                 | Div Expression Expression
                 | Mod Expression Expression
-                deriving (Show)
+                deriving (Show, Eq)
 
 data Instruction = Label String
                  | Assign String Expression
@@ -18,7 +25,7 @@ data Instruction = Label String
                  | Save String
                  | Restore String
                  | Goto Expression
-                 deriving (Show)
+                 deriving (Show, Eq)
 
 matchWord :: String -> Parsec String () String
 matchWord = foldr (\ x -> (<*>) ((:) <$> char x)) (return [])
@@ -99,26 +106,3 @@ gotoInstruction = do
 instruction = parenthesis (assignInstruction <|> branchInstruction <|> stackInstruction <|> gotoInstruction) <|> labelInstruction
 
 instructions = parenthesis (instruction `sepEndBy` many1 space)
-
-omit name [] = []
-omit name ((key, value):xs)
-    | name == key = xs
-    | otherwise = (key, value):omit name xs
-setRegister table name value = (name, value):omit name table
-
-getRegister [] name = error "Register: " ++ name ++ " is not set"
-getRegister ((key, value):xs) name
-    | name == key = value
-    | otherwise = getRegister xs name
-
-eval [] registers totalInstruction = registers
-eval ins registers totalInstruction = eval next newRegisters totalInstruction
-    where
-        (next, newRegisters) = runInstruction ins registers totalInstruction
-
-runInstruction ((Label l):xs) registers _ = (xs, registers)
-runInstruction ((Assign registerName exp):xs) registers _ = 
-    (xs, setRegister registers registerName (evalExp exp registers))
-runInstruction ((Branch exp dest):xs) registers totalInstruction
-    | evalExp exp == Bool True = (findNext totalInstruction (evalExp dest), registers)
-    | otherwise = (xs, registers)

@@ -1,7 +1,7 @@
 (
 loop
 (branch (= (fetch b) 0) done)
-(assign t (remainder (fetch a) (fetch b)))
+(assign t (% (fetch a) (fetch b)))
 (assign a (fetch b))
 (assign b (fetch t))
 (goto loop)

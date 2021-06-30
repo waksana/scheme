@@ -1,7 +1,7 @@
 (
   (assign continue done)
   main
-  (branch (= n 1) base)
+  (branch (= (fetch n) 1) base)
   (save continue)
   (save n)
   (assign n (- (fetch n) 1))
