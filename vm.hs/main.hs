@@ -6,13 +6,12 @@ import qualified Data.Map as Map
 fromRight (Left err) = error $ show err
 fromRight (Right b) = b
 
-main = do
-    code <- readFile "../examples/gcd.vml"
-    let inst = fromRight $ parse instructions "" code
-    calculate $ initState inst $ Map.fromList [("a", Number 53), ("b", Number 189)]
+parseVML code = initState $ fromRight $ parse instructions "" code
 
-calculate state = do
-    print state
-    let next = step state
-    getLine 
-    calculate next
+debugFile filename registers = do
+    code <- readFile filename
+    debug $ parseVML code registers []
+
+runFile filename registers = do
+    code <- readFile filename
+    return (run $ parseVML code registers [])

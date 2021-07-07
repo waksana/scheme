@@ -10,6 +10,8 @@ import Text.Parsec
 data Expression = Dest String
                 | Number Integer
                 | Bool Bool
+                | Symbol String
+                | Ls List
                 | Fetch String
                 | Eq Expression Expression
                 | Sub Expression Expression
@@ -18,6 +20,8 @@ data Expression = Dest String
                 | Div Expression Expression
                 | Mod Expression Expression
                 deriving (Show, Eq)
+
+data List = Null | List Expression List deriving (Show, Eq)
 
 data Instruction = Label String
                  | Assign String Expression

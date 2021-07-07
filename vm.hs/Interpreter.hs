@@ -1,7 +1,8 @@
 module Interpreter (
-    eval,
     step,
-    initState
+    initState,
+    run,
+    debug
 )
 where
 
@@ -18,7 +19,7 @@ data State = State {
     stack :: [Expression],
     registers :: Map.Map String Expression ,
     labelMap :: Map.Map String [Instruction]
-}
+} deriving (Eq)
 
 instance Show State where
     show a = "Instructions:"
@@ -78,12 +79,22 @@ step State { pointer=((Goto destination):xs), stack=stack, registers=registers, 
 value State { pointer=[], stack=stack, registers=registers, labelMap=labelMap } = State { pointer=[], stack=stack, registers=registers, labelMap=labelMap }
 value state = (value . step) state
 
-initState instructions registers =
+initState instructions registers stack =
   State
     { pointer = instructions,
       registers = registers,
-      stack = [],
+      stack = stack,
       labelMap = getLabelMap instructions Map.empty
     }
 
-eval instructions = step
+debug state = do
+    print state
+    let next = step state
+    getLine
+    debug next
+
+run state = if next == state
+            then state
+            else run next
+    where
+        next = step state
