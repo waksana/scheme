@@ -19,6 +19,9 @@ data Expression = Dest String
                 | Mul Expression Expression
                 | Div Expression Expression
                 | Mod Expression Expression
+                | Cons Expression Expression
+                | Car Expression
+                | Cdr Expression
                 deriving (Show, Eq)
 
 data List = Null | List Expression List deriving (Show, Eq)
@@ -46,6 +49,9 @@ numberExpression = Number . read <$> many1 digit
 boolExpression :: Parsec String () Expression
 boolExpression = Bool . read <$> (matchWord "True" <|> matchWord "False")
 
+nullExpression :: Parsec String () Expression
+nullExpression = matchWord "null" >> return (Ls Null)
+
 fetchExpression :: Parsec String () Expression
 fetchExpression = Fetch <$> (matchWord "fetch" >> many1 space *> many1 letter)
 
@@ -67,7 +73,17 @@ divOperator = char '/' >> return Div
 modOperator :: Parsec String () (Expression -> Expression -> Expression)
 modOperator = char '%' >> return Mod
 
-operator = eqOperator <|> addOperator <|> subOperator <|> mulOperator <|> divOperator <|> modOperator
+consOperator :: Parsec String () (Expression -> Expression -> Expression)
+consOperator = matchWord "cons" >> return Cons
+
+carOperator :: Parsec String () (Expression -> Expression)
+carOperator = matchWord "car" >> return Car
+
+cdrOperator :: Parsec String () (Expression -> Expression)
+cdrOperator = matchWord "cdr" >> return Cdr
+
+operator = eqOperator <|> addOperator <|> subOperator <|> mulOperator <|> divOperator <|> modOperator <|> consOperator
+singleParameterOperator = carOperator <|> cdrOperator
 
 operatorExpression :: Parsec String () Expression
 operatorExpression = do
@@ -77,8 +93,19 @@ operatorExpression = do
     many1 space
     op left <$> expression
 
+singleParameterOperatorExpression = do
+    op <- singleParameterOperator
+    many1 space
+    op <$> expression
+
 expression :: Parsec String () Expression
-expression = numberExpression <|> boolExpression <|> destExpression <|> parenthesis (fetchExpression <|> operatorExpression)
+expression = numberExpression
+         <|> boolExpression
+         <|> destExpression
+         <|> parenthesis (
+                singleParameterOperatorExpression
+            <|> fetchExpression
+            <|> operatorExpression)
 
 labelInstruction :: Parsec String () Instruction
 labelInstruction = Label <$> many1 letter
@@ -94,17 +121,17 @@ branchInstruction = do
     matchWord "branch"
     many1 space
     exp <- expression
-    many1 space 
+    many1 space
     Branch exp <$> (parenthesis fetchExpression <|> destExpression)
 
 stackInstruction = do
     op <- (matchWord "save" >> return Save) <|> (matchWord "restore" >> return Restore)
-    many1 space 
+    many1 space
     op <$> many1 letter
 
 gotoInstruction = do
     matchWord "goto"
-    many1 space 
+    many1 space
     Goto <$> (parenthesis fetchExpression <|> destExpression)
 
 instruction = parenthesis (assignInstruction <|> branchInstruction <|> stackInstruction <|> gotoInstruction) <|> labelInstruction
