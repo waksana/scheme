@@ -1,0 +1,8 @@
+(
+    (assign a null)
+    (assign a (cons 1 (fetch a)))
+    (assign a (cons a (fetch a)))
+    (assign b (car (fetch a)))
+    (assign c (cdr (fetch a)))
+    (assign d (cdr (cdr (fetch a))))
+)

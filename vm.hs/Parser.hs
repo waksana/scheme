@@ -1,16 +1,16 @@
 module Parser (
     instructions,
     Instruction (..),
-    Expression (..)
+    Expression (..),
+    List (..)
 )
 where
 
 import Text.Parsec
 
-data Expression = Dest String
+data Expression = Symbol String
                 | Number Integer
                 | Bool Bool
-                | Symbol String
                 | Ls List
                 | Fetch String
                 | Eq Expression Expression
@@ -34,26 +34,23 @@ data Instruction = Label String
                  | Goto Expression
                  deriving (Show, Eq)
 
-matchWord :: String -> Parsec String () String
-matchWord = foldr (\ x -> (<*>) ((:) <$> char x)) (return [])
-
 parenthesis:: Parsec String () a -> Parsec String () a
 parenthesis p = char '(' *> spaces *> p <* spaces <* char ')'
 
-destExpression :: Parsec String () Expression
-destExpression = Dest <$> many1 letter
+symbolExpression :: Parsec String () Expression
+symbolExpression = Symbol <$> many1 letter
 
 numberExpression :: Parsec String () Expression
 numberExpression = Number . read <$> many1 digit
 
 boolExpression :: Parsec String () Expression
-boolExpression = Bool . read <$> (matchWord "True" <|> matchWord "False")
+boolExpression = Bool . read <$> (string "True" <|> string "False")
 
 nullExpression :: Parsec String () Expression
-nullExpression = matchWord "null" >> return (Ls Null)
+nullExpression = string "null" >> return (Ls Null)
 
 fetchExpression :: Parsec String () Expression
-fetchExpression = Fetch <$> (matchWord "fetch" >> many1 space *> many1 letter)
+fetchExpression = Fetch <$> (string "fetch" >> many1 space *> many1 letter)
 
 eqOperator :: Parsec String () (Expression -> Expression -> Expression)
 eqOperator = char '=' >> return Eq
@@ -74,16 +71,16 @@ modOperator :: Parsec String () (Expression -> Expression -> Expression)
 modOperator = char '%' >> return Mod
 
 consOperator :: Parsec String () (Expression -> Expression -> Expression)
-consOperator = matchWord "cons" >> return Cons
+consOperator = string "cons" >> return Cons
 
 carOperator :: Parsec String () (Expression -> Expression)
-carOperator = matchWord "car" >> return Car
+carOperator = string "car" >> return Car
 
 cdrOperator :: Parsec String () (Expression -> Expression)
-cdrOperator = matchWord "cdr" >> return Cdr
+cdrOperator = string "cdr" >> return Cdr
 
-operator = eqOperator <|> addOperator <|> subOperator <|> mulOperator <|> divOperator <|> modOperator <|> consOperator
-singleParameterOperator = carOperator <|> cdrOperator
+operator = eqOperator <|> addOperator <|> subOperator <|> mulOperator <|> divOperator <|> modOperator <|> try consOperator
+singleParameterOperator = try carOperator <|> try cdrOperator
 
 operatorExpression :: Parsec String () Expression
 operatorExpression = do
@@ -101,38 +98,36 @@ singleParameterOperatorExpression = do
 expression :: Parsec String () Expression
 expression = numberExpression
          <|> boolExpression
-         <|> destExpression
-         <|> parenthesis (
-                singleParameterOperatorExpression
-            <|> fetchExpression
-            <|> operatorExpression)
+         <|> nullExpression
+         <|> symbolExpression
+         <|> parenthesis (fetchExpression <|> operatorExpression <|> singleParameterOperatorExpression)
 
 labelInstruction :: Parsec String () Instruction
 labelInstruction = Label <$> many1 letter
 
 assignInstruction = do
-    matchWord "assign"
+    string "assign"
     many1 space
     reg <- many1 letter
     many1 space
     Assign reg <$> expression
 
 branchInstruction = do
-    matchWord "branch"
+    string "branch"
     many1 space
     exp <- expression
     many1 space
-    Branch exp <$> (parenthesis fetchExpression <|> destExpression)
+    Branch exp <$> (parenthesis fetchExpression <|> symbolExpression)
 
 stackInstruction = do
-    op <- (matchWord "save" >> return Save) <|> (matchWord "restore" >> return Restore)
+    op <- (string "save" >> return Save) <|> (string "restore" >> return Restore)
     many1 space
     op <$> many1 letter
 
 gotoInstruction = do
-    matchWord "goto"
+    string "goto"
     many1 space
-    Goto <$> (parenthesis fetchExpression <|> destExpression)
+    Goto <$> (parenthesis fetchExpression <|> symbolExpression)
 
 instruction = parenthesis (assignInstruction <|> branchInstruction <|> stackInstruction <|> gotoInstruction) <|> labelInstruction
 

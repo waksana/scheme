@@ -38,11 +38,24 @@ cal registers fn left right = expressionCal fn (valueOfExpression left registers
         expressionCal fn (Number left) (Number right) = Number $ fn left right
         expressionCal fn left right = error $ "can not calcuate " ++ show left ++ " and " ++ show right
 
+getHead (Ls (List x _)) = x
+getHead _ = error "can not get header"
+
+getTail (Ls (List _ xs)) = Ls xs
+getTail _ = error "can not get header"
+
+getLs (Ls xs) = xs
+getLs _ = error "not a list"
+
 valueOfExpression :: Expression -> Map.Map String Expression-> Expression
 valueOfExpression exp registers = case exp of
-    Dest _ -> exp
+    Ls _ -> exp
+    Symbol _ -> exp
     Number _ -> exp
     Bool _ -> exp
+    Car expression -> getHead $ valueOfExpression expression registers
+    Cdr expression -> getTail $ valueOfExpression expression registers
+    Cons left right -> Ls (List (valueOfExpression left registers) (getLs $ valueOfExpression right registers))
     Fetch register -> fromJust (Map.lookup register registers)
     Eq left right -> Bool (valueOfExpression left registers == valueOfExpression right registers)
     Add left right -> cal registers (+) left right
@@ -51,7 +64,7 @@ valueOfExpression exp registers = case exp of
     Div left right -> cal registers div left right
     Mod left right -> cal registers mod left right
 
-getDest (Dest label) labelMap = fromJust $ Map.lookup label labelMap
+getDest (Symbol label) labelMap = fromJust $ Map.lookup label labelMap
 getDest exp _ = error $ show exp ++ "is not a Destination"
 
 step :: State -> State
