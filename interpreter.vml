@@ -1,13 +1,33 @@
 (
 eval-dispatch
-    (branch (self-evaluation? (fetch exp)) ev-self-eval)
-    (branch (variable? (fetch exp)) ev-variable)
-    (branch (application? (fetch exp)) ev-application)
-ev-self-eval
+    (branch (list? (fetch exp)) ev-list)
+    (branch (= (fetch exp) +) raw-value)
+    (branch (= (fetch exp) -) raw-value)
+    (branch (= (fetch exp) *) raw-value)
+    (branch (= (fetch exp) /) raw-value)
+    (branch (= (fetch exp) %) raw-value)
+    (branch (= (fetch exp) =) raw-value)
+    (branch (= (fetch exp) car) raw-value)
+    (branch (= (fetch exp) cdr) raw-value)
+    (branch (= (fetch exp) cons) raw-value)
+    (branch (symbol? (fetch exp)) raw-value)
+raw-value
     (assign val (fetch exp))
     (goto (fetch continue))
+ev-list
+    (branch (= (car (fetch exp)) lambda) ev-lambda)
+    (goto ev-application)
+ev-labmda
+    (assign val (cons env (cdr (fetch exp))))
 ev-variable
-    (assign val (lookup-variable-value (fetch exp)))
+    (branch (= env null) variable-not-found)
+    (assign tmp (car env))
+    (assign key (car tmp))
+    (branch (= key exp) found-variable)
+    (assign env (cdr env))
+    (goto ev-variable)
+found-variable
+    (assign val (car (cdr tmp)))
     (goto (fetch continue))
 ev-application
     (assign unev (cdr (fetch exp)))
@@ -22,12 +42,12 @@ eval-args
     (restore env)
     (assign fun (fetch val))
     (save fun)
-    (assign argl '())
+    (assign argl null)
     (goto eval-arg-loop)
 eval-arg-loop
     (save argl)
     (assign exp (car (fetch unev)))
-    (branch (last-operand? (fetch unev)) eval-last-arg)
+    (branch (= (cdr (fetch unev)) null) eval-last-arg)
     (save env)
     (save unev)
     (assign continue accumulate-arg)
@@ -48,17 +68,67 @@ accumulate-last-arg
     (restore fun)
     (goto apply-dispatch)
 apply-dispatch
-    (branch (primitive-proc? (fetch fun)) primitive-apply)
-    (branch (compound-proc? (fetch fun)) compound-apply)
-    (goto unknown-proc-type-error)
+    (branch (symbol? (fetch fun)) primitive-apply)
+    (goto compound-apply)
 primitive-apply
-    (assign val (apply-primitive-proc (fetch fun) (fetch argl)))
+    (branch (= (fetch fun) +) apply-add)
+    (branch (= (fetch fun) -) apply-sub)
+    (branch (= (fetch fun) *) apply-mul)
+    (branch (= (fetch fun) /) apply-div)
+    (branch (= (fetch fun) %) apply-mod)
+    (branch (= (fetch fun) =) apply-eq)
+    (branch (= (fetch fun) car) apply-car)
+    (branch (= (fetch fun) cdr) apply-cdr)
+    (branch (= (fetch fun) cons) apply-cons)
+apply-add
+    (assign val (+ (car (fetch argl)) (car (cdr (fetch argl)))))
+    (restore continue)
+    (goto (fetch continue))
+apply-sub
+    (assign val (- (car (fetch argl)) (car (cdr (fetch argl)))))
+    (restore continue)
+    (goto (fetch continue))
+apply-mul
+    (assign val (* (car (fetch argl)) (car (cdr (fetch argl)))))
+    (restore continue)
+    (goto (fetch continue))
+apply-div
+    (assign val (/ (car (fetch argl)) (car (cdr (fetch argl)))))
+    (restore continue)
+    (goto (fetch continue))
+apply-mod
+    (assign val (% (car (fetch argl)) (car (cdr (fetch argl)))))
+    (restore continue)
+    (goto (fetch continue))
+apply-eq
+    (assign val (= (car (fetch argl)) (car (cdr (fetch argl)))))
+    (restore continue)
+    (goto (fetch continue))
+apply-car
+    (assign val (car (car (fetch argl))))
+    (restore continue)
+    (goto (fetch continue))
+apply-cdr
+    (assign val (cdr (car (fetch argl))))
+    (restore continue)
+    (goto (fetch continue))
+apply-cons
+    (assign val (cons (car (fetch argl)) (car (cdr (fetch argl)))))
     (restore continue)
     (goto (fetch continue))
 compound-apply
-    (assign exp (procedure-body (fetch fun)))
-    (assign env (make-bindings (fetch fun) (fetch argl)))
+    (assign par (car (cdr (fetch fun))))
+    (assign env (car (fetch fun)))
+    (goto extend-env)
+eval-apply
+    (assign exp (car (cdr (cdr (fetch fun)))))
     (restore continue)
     (goto eval-dispatch)
+extend-env
+    (branch (= null par) eval-apply)
+    (assign env (cons (cons (car par) (cons (car argl) null)) env))
+    (assign par (cdr par))
+    (assign argl (cdr argl))
+    (goto extend-env)
 done
 )

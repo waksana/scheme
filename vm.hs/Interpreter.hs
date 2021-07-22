@@ -23,7 +23,7 @@ data State = State {
 
 instance Show State where
     show a = "Instructions:"
-             ++ concatMap (("\n  " ++) . show) (pointer a)
+             ++ concatMap (("\n  " ++) . show) (take 10 (pointer a))
              ++ "\nRegisters:"
              ++ concat(Map.mapWithKey (\ k v -> "\n  " ++ k ++ ": " ++ show v) (registers a))
              ++ "\nStack:"
@@ -53,6 +53,12 @@ valueOfExpression exp registers = case exp of
     Symbol _ -> exp
     Number _ -> exp
     Bool _ -> exp
+    IsList expression -> case valueOfExpression expression registers of
+        Ls _ -> Bool True
+        _ -> Bool False
+    IsSymbol expression -> case valueOfExpression expression registers of
+        Symbol _ -> Bool True
+        _ -> Bool False
     Car expression -> getHead $ valueOfExpression expression registers
     Cdr expression -> getTail $ valueOfExpression expression registers
     Cons left right -> Ls (List (valueOfExpression left registers) (getLs $ valueOfExpression right registers))
