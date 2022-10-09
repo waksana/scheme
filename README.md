@@ -1,9 +1,6 @@
 scheme
 ========
 
-## plan
-
-- [x] Register Machine spec
 - [x] Implement Register Machine
 - [x] Use Register Machine instructions to interpret scheme
 - [x] Use Scheme to interpret scheme
@@ -11,7 +8,7 @@ scheme
 
 ## Register Machine
 
-Every program is a Register Machine which can achieve some sort of functionality. Basically the machine has three parts: Datapath, Controller and Stack.
+Every program defines a Register Machine which can achieve some sort of functionality. Basically the machine has three parts: Datapath, Controller and Stack.
 
 ### Datapath
 
@@ -47,15 +44,15 @@ Controller is a finite state machine which controls how the datapath and stack w
 
 We can define our controller, datapath using instructions.  With a set of instructions, we can define any machine we want.
 
-- define calculators: `&`, `|`, `+`, `-`, `*`, `/`, `%`
+- define calculators: `!`, `&`, `|`, `+`, `-`, `*`, `/`, `%`
 
-- define register operations: assign, fetch.
+- define register operations: `assign`, `fetch`.
 
 - define indicators: `=`, `>=`, `<=`, `>`, `<`.
 
-- define state transfers: goto, branch.
+- define state transfers: `goto`, `branch`.
 
-- control stack: save, restore.
+- control stack: `save`, `restore`.
 
 ## Example
 
@@ -74,7 +71,7 @@ We can define our controller, datapath using instructions.  With a set of instru
   (controller
     loop
     (branch (= (fetch b) 0) done)
-    (assign t (remainder (fetch a) (fetch b)))
+    (assign t (% (fetch a) (fetch b)))
     (assign a (fetch b))
     (assign b (fetch t))
     (goto loop)
