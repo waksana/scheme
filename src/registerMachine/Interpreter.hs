@@ -38,10 +38,10 @@ cal registers fn left right = expressionCal fn (valueOfExpression left registers
         expressionCal fn (Number left) (Number right) = Number $ fn left right
         expressionCal fn left right = error $ "can not calcuate " ++ show left ++ " and " ++ show right
 
-getHead (Ls (List x _)) = x
+getHead (Ls (x:_)) = x
 getHead _ = error "can not get header"
 
-getTail (Ls (List _ xs)) = Ls xs
+getTail (Ls (_:xs)) = Ls xs
 getTail _ = error "can not get header"
 
 getLs (Ls xs) = xs
@@ -61,7 +61,7 @@ valueOfExpression exp registers = case exp of
         _ -> Bool False
     Car expression -> getHead $ valueOfExpression expression registers
     Cdr expression -> getTail $ valueOfExpression expression registers
-    Cons left right -> Ls (List (valueOfExpression left registers) (getLs $ valueOfExpression right registers))
+    Cons left right -> Ls ((valueOfExpression left registers):(getLs $ valueOfExpression right registers))
     Fetch register -> fromJust (Map.lookup register registers)
     Eq left right -> Bool (valueOfExpression left registers == valueOfExpression right registers)
     Add left right -> cal registers (+) left right

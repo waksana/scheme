@@ -1,8 +1,7 @@
 module Parser (
     instructions,
     Instruction (..),
-    Expression (..),
-    List (..)
+    Expression (..)
 )
 where
 
@@ -11,7 +10,7 @@ import Text.Parsec
 data Expression = Symbol String
                 | Number Integer
                 | Bool Bool
-                | Ls List
+                | Ls [Expression]
                 | Fetch String
                 | IsList Expression
                 | IsSymbol Expression
@@ -25,8 +24,6 @@ data Expression = Symbol String
                 | Car Expression
                 | Cdr Expression
                 deriving (Show, Eq)
-
-data List = Null | List Expression List deriving (Show, Eq)
 
 data Instruction = Label String
                  | Assign String Expression
@@ -52,7 +49,7 @@ boolExpression :: Parsec String () Expression
 boolExpression = Bool . read <$> (string "True" <|> string "False")
 
 nullExpression :: Parsec String () Expression
-nullExpression = string "null" >> return (Ls Null)
+nullExpression = string "null" >> return (Ls [])
 
 fetchExpression :: Parsec String () Expression
 fetchExpression = Fetch <$> (string "fetch" >> many1 space *> many1 symbol)
