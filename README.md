@@ -3,17 +3,15 @@ scheme
 
 ## plan
 
-- [x] vm.md: design virtual machine and it's language
-- [x] vm: implement a virtual machine running vml 
-- [x] scheme-interpreter.vml: elevate the vm to scheme machine
-- [x] scheme-interpreter.ss: scheme machine in scheme
-- [ ] scheme-compiler.ss: compile ss to vml
+- [x] Register Machine spec
+- [x] Implement Register Machine
+- [x] Use Register Machine instructions to interpret scheme
+- [x] Use Scheme to interpret scheme
+- [ ] Compile scheme to Register Machine Instructions using scheme
 
-# Register Machine
+## Register Machine
 
-## Machine
-
-Every program is a Machine which can achieve some sort of functionality. Basically the machine has three parts: Datapath, Controller and Stack.
+Every program is a Register Machine which can achieve some sort of functionality. Basically the machine has three parts: Datapath, Controller and Stack.
 
 ### Datapath
 
