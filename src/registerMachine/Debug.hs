@@ -1,3 +1,6 @@
+module Debug 
+where
+
 import Text.Parsec
 import Parser
 import Interpreter

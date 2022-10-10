@@ -30,7 +30,7 @@ valueOfExpression exp registers = case exp of
     Car expression -> getHead $ valueOfExpression expression registers
     Cdr expression -> getTail $ valueOfExpression expression registers
     Cons left right -> List (valueOfExpression left registers : getLs (valueOfExpression right registers))
-    Fetch register -> fromJust (Map.lookup register registers)
+    Fetch register -> fromJust register (Map.lookup register registers)
     Eq left right -> Bool (valueOfExpression left registers == valueOfExpression right registers)
     Add left right -> cal registers (+) left right
     Sub left right -> cal registers (-) left right
@@ -39,13 +39,13 @@ valueOfExpression exp registers = case exp of
     Mod left right -> cal registers mod left right
     where
         getHead (List (x:_)) = x
-        getHead _ = error "can not get header"
+        getHead x = error $ "can not get header of " ++ show x
 
         getTail (List (_:xs)) = List xs
-        getTail _ = error "can not get header"
+        getTail x = error $ "can not get tail of " ++ show x
 
         getLs (List xs) = xs
-        getLs _ = error "not a list"
+        getLs x = error $ show x ++ " is not a list"
 
         cal registers fn left right = expressionCal fn (valueOfExpression left registers) (valueOfExpression right registers)
             where
@@ -53,7 +53,7 @@ valueOfExpression exp registers = case exp of
                 expressionCal fn left right = error $ "can not calcuate " ++ show left ++ " and " ++ show right
 
 getLabelMap [] labelMap = labelMap
-getLabelMap (Label labelName : xs) labelMap = getLabelMap xs $ insert labelName xs labelMap
+getLabelMap (Label labelName : xs) labelMap = getLabelMap xs $ insert labelName (Label labelName : xs) labelMap
 getLabelMap (_:xs) labelMap = getLabelMap xs labelMap
 
 data State = State {
@@ -71,11 +71,11 @@ instance Show State where
              ++ "\nStack:"
              ++ concatMap (("\n  " ++) . show) (stack a)
 
-fromJust :: Maybe a -> a
-fromJust Nothing  = error "Maybe.fromJust: Nothing"
-fromJust (Just x) = x
+fromJust :: String -> Maybe a -> a
+fromJust name Nothing  = error $ "can't find " ++ name ++ " in Map"
+fromJust _ (Just x) = x
 
-getDest (Symbol label) labelMap = fromJust $ Map.lookup label labelMap
+getDest (Symbol label) labelMap = fromJust label $ Map.lookup label labelMap
 getDest exp _ = error $ show exp ++ "is not a Destination"
 
 step :: State -> State
@@ -91,7 +91,7 @@ step State { pointer=((Branch condition destination):xs), stack=stack, registers
                else xs
 step State { pointer=((Save register):xs), stack=stack, registers=registers, labelMap=labelMap } = State { pointer=xs, stack = newStack, registers=registers, labelMap=labelMap }
     where
-        newStack = fromJust (Map.lookup register registers):stack
+        newStack = fromJust register (Map.lookup register registers):stack
 step State { pointer=((Restore register):xs), stack=stack, registers=registers, labelMap=labelMap } = State { pointer=xs, stack = newStack, registers=newRegisters, labelMap=labelMap }
     where
         newStack = tail stack
