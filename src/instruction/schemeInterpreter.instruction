@@ -1,4 +1,6 @@
 (
+(assign exp 1))
+(assign continue done)
 eval-dispatch
     (branch (list? (fetch exp)) ev-list)
     (branch (= (fetch exp) +) raw-value)
@@ -10,7 +12,7 @@ eval-dispatch
     (branch (= (fetch exp) car) raw-value)
     (branch (= (fetch exp) cdr) raw-value)
     (branch (= (fetch exp) cons) raw-value)
-    (branch (symbol? (fetch exp)) raw-value)
+    (branch (symbol? (fetch exp)) ev-variable)
 raw-value
     (assign val (fetch exp))
     (goto (fetch continue))
@@ -20,7 +22,7 @@ ev-list
 ev-labmda
     (assign val (cons env (cdr (fetch exp))))
 ev-variable
-    (branch (= env null) variable-not-found)
+    (branch (= env (quote ())) variable-not-found)
     (assign tmp (car env))
     (assign key (car tmp))
     (branch (= key exp) found-variable)
@@ -42,12 +44,12 @@ eval-args
     (restore env)
     (assign fun (fetch val))
     (save fun)
-    (assign argl null)
+    (assign argl (quote ()))
     (goto eval-arg-loop)
 eval-arg-loop
     (save argl)
     (assign exp (car (fetch unev)))
-    (branch (= (cdr (fetch unev)) null) eval-last-arg)
+    (branch (= (cdr (fetch unev)) (quote ())) eval-last-arg)
     (save env)
     (save unev)
     (assign continue accumulate-arg)
@@ -125,8 +127,8 @@ eval-apply
     (restore continue)
     (goto eval-dispatch)
 extend-env
-    (branch (= null par) eval-apply)
-    (assign env (cons (cons (car par) (cons (car argl) null)) env))
+    (branch (= (quote ()) par) eval-apply)
+    (assign env (cons (cons (car par) (cons (car argl) (quote ()))) env))
     (assign par (cdr par))
     (assign argl (cdr argl))
     (goto extend-env)

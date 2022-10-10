@@ -2,16 +2,26 @@ import Text.Parsec
 import Parser
 import Interpreter
 import qualified Data.Map as Map
+import Tokenizer (tokenizer)
 
 fromRight (Left err) = error $ show err
 fromRight (Right b) = b
 
-parseVML code = initState $ fromRight $ parse instructions "" code
+initVM code = initState $ parseInstructions $ fromRight $ tokenizer code
 
-debugFile filename registers = do
+debugFile filename = do
     code <- readFile filename
-    debug $ parseVML code registers []
+    debug $ initVM code
 
-runFile filename registers = do
+runFile filename = do
     code <- readFile filename
-    return (run $ parseVML code registers [])
+    return (value $ initVM code)
+
+tokenizeFile filename = do
+    code <- readFile filename
+    return (tokenizer code)
+
+parseFile filename = do
+    code <- readFile filename
+    return (parseInstructions $ fromRight $ tokenizer code)
+

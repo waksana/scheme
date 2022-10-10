@@ -6,9 +6,51 @@ module Interpreter (
 )
 where
 
-import Parser (parseInstruction, Instruction (..), Expression (..))
+import Tokenizer (SExp (..))
+import Parser (Instruction (..), Expression (..))
 import Data.Map (Map, mapWithKey, insert)
 import qualified Data.Map as Map
+
+isList (List _) = True
+isList _ = False
+
+valueOfExpression :: Expression -> Map String SExp -> SExp
+valueOfExpression exp registers = case exp of
+    Concrete sexp -> sexp
+    IsList expression -> Bool $ isList $ valueOfExpression expression registers
+    IsSymbol expression -> Bool $ case valueOfExpression expression registers of
+        Symbol _ -> True
+        _ -> False
+    IsBool expression -> Bool $ case valueOfExpression expression registers of
+        Bool _ -> True
+        _ -> False
+    IsNumber expression -> Bool $ case valueOfExpression expression registers of
+        Number _ -> True
+        _ -> False
+    Car expression -> getHead $ valueOfExpression expression registers
+    Cdr expression -> getTail $ valueOfExpression expression registers
+    Cons left right -> List (valueOfExpression left registers : getLs (valueOfExpression right registers))
+    Fetch register -> fromJust (Map.lookup register registers)
+    Eq left right -> Bool (valueOfExpression left registers == valueOfExpression right registers)
+    Add left right -> cal registers (+) left right
+    Sub left right -> cal registers (-) left right
+    Mul left right -> cal registers (*) left right
+    Div left right -> cal registers div left right
+    Mod left right -> cal registers mod left right
+    where
+        getHead (List (x:_)) = x
+        getHead _ = error "can not get header"
+
+        getTail (List (_:xs)) = List xs
+        getTail _ = error "can not get header"
+
+        getLs (List xs) = xs
+        getLs _ = error "not a list"
+
+        cal registers fn left right = expressionCal fn (valueOfExpression left registers) (valueOfExpression right registers)
+            where
+                expressionCal fn (Number left) (Number right) = Number $ fn left right
+                expressionCal fn left right = error $ "can not calcuate " ++ show left ++ " and " ++ show right
 
 getLabelMap [] labelMap = labelMap
 getLabelMap (Label labelName : xs) labelMap = getLabelMap xs $ insert labelName xs labelMap
@@ -16,8 +58,8 @@ getLabelMap (_:xs) labelMap = getLabelMap xs labelMap
 
 data State = State {
     pointer :: [Instruction],
-    stack :: [Expression],
-    registers :: Map String Expression,
+    stack :: [SExp],
+    registers :: Map String SExp,
     labelMap :: Map String [Instruction]
 } deriving (Eq)
 
@@ -33,45 +75,8 @@ fromJust :: Maybe a -> a
 fromJust Nothing  = error "Maybe.fromJust: Nothing"
 fromJust (Just x) = x
 
-getDest (ExpSymbol label) labelMap = fromJust $ Map.lookup label labelMap
+getDest (Symbol label) labelMap = fromJust $ Map.lookup label labelMap
 getDest exp _ = error $ show exp ++ "is not a Destination"
-
-valueOfExpression :: Expression -> Map String Expression-> Expression
-valueOfExpression exp registers = case exp of
-    ExpList _ -> exp
-    ExpSymbol _ -> exp
-    ExpNumber _ -> exp
-    ExpBool _ -> exp
-    IsList expression -> case valueOfExpression expression registers of
-        ExpList _ -> ExpBool True
-        _ -> ExpBool False
-    IsSymbol expression -> case valueOfExpression expression registers of
-        ExpSymbol _ -> ExpBool True
-        _ -> ExpBool False
-    Car expression -> getHead $ valueOfExpression expression registers
-    Cdr expression -> getTail $ valueOfExpression expression registers
-    Cons left right -> ExpList (valueOfExpression left registers :getLs (valueOfExpression right registers))
-    Fetch register -> fromJust (Map.lookup register registers)
-    Eq left right -> ExpBool (valueOfExpression left registers == valueOfExpression right registers)
-    Add left right -> cal registers (+) left right
-    Sub left right -> cal registers (-) left right
-    Mul left right -> cal registers (*) left right
-    Div left right -> cal registers div left right
-    Mod left right -> cal registers mod left right
-    where
-        getHead (ExpList (x:_)) = x
-        getHead _ = error "can not get header"
-
-        getTail (ExpList (_:xs)) = ExpList xs
-        getTail _ = error "can not get header"
-
-        getLs (ExpList xs) = xs
-        getLs _ = error "not a list"
-
-        cal registers fn left right = expressionCal fn (valueOfExpression left registers) (valueOfExpression right registers)
-            where
-                expressionCal fn (ExpNumber left) (ExpNumber right) = ExpNumber $ fn left right
-                expressionCal fn left right = error $ "can not calcuate " ++ show left ++ " and " ++ show right
 
 step :: State -> State
 step State { pointer=[], stack=stack, registers=registers, labelMap=labelMap } = State { pointer=[], stack=stack, registers=registers, labelMap=labelMap }
@@ -81,7 +86,7 @@ step State { pointer=((Assign register exp):xs), stack=stack, registers=register
         newRegisters = insert register (valueOfExpression exp registers) registers
 step State { pointer=((Branch condition destination):xs), stack=stack, registers=registers, labelMap=labelMap } = State { pointer=next, stack = stack, registers=registers, labelMap=labelMap }
     where
-        next = if valueOfExpression condition registers == ExpBool True
+        next = if valueOfExpression condition registers == Bool True
                then getDest (valueOfExpression destination registers) labelMap
                else xs
 step State { pointer=((Save register):xs), stack=stack, registers=registers, labelMap=labelMap } = State { pointer=xs, stack = newStack, registers=registers, labelMap=labelMap }
@@ -95,11 +100,11 @@ step State { pointer=((Goto destination):xs), stack=stack, registers=registers, 
     where
         next = getDest (valueOfExpression destination registers) labelMap
 
-initState instructions registers stack =
+initState instructions =
   State
     { pointer = instructions,
-      registers = registers,
-      stack = stack,
+      registers = Map.empty,
+      stack = [],
       labelMap = getLabelMap instructions Map.empty
     }
 

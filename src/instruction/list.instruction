@@ -1,5 +1,5 @@
 (
-    (assign a null)
+    (assign a (quote (car 1 2 3 4 #f (5 6 #t))))
     (assign a (cons Trueb (fetch a)))
     (assign a (cons a (fetch a)))
     (assign b (car (fetch a)))

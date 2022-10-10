@@ -1,4 +1,5 @@
 (
+  (assign n 8)
   (assign continue done)
   main
   (branch (= (fetch n) 1) base)
