@@ -61,7 +61,7 @@ valueOfExpression exp registers = case exp of
         _ -> Bool False
     Car expression -> getHead $ valueOfExpression expression registers
     Cdr expression -> getTail $ valueOfExpression expression registers
-    Cons left right -> Ls ((valueOfExpression left registers):(getLs $ valueOfExpression right registers))
+    Cons left right -> Ls (valueOfExpression left registers :getLs (valueOfExpression right registers))
     Fetch register -> fromJust (Map.lookup register registers)
     Eq left right -> Bool (valueOfExpression left registers == valueOfExpression right registers)
     Add left right -> cal registers (+) left right
