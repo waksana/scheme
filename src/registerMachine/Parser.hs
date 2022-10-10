@@ -1,7 +1,7 @@
 module Parser (
     parseInstruction,
     Expression(..),
-    Instruction(..),
+    Instruction(..)
 )
 where
 
