@@ -1,4 +1,6 @@
 (
+(assign a 12)
+(assign b 144)
 loop
 (branch (= (fetch b) 0) done)
 (assign t (% (fetch a) (fetch b)))
@@ -6,4 +8,5 @@ loop
 (assign b (fetch t))
 (goto loop)
 done
+(assign val (fetch a))
 )
