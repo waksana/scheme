@@ -1,5 +1,5 @@
 (
-(assign exp (quote ((lambda (a b) (+ a b)) 1 3)))
+(assign exp (quote ((lambda (a b) (- a b)) 1 4)))
 (assign env (quote ()))
 (assign continue done)
 eval-dispatch
@@ -25,13 +25,13 @@ ev-lambda
     (goto (fetch continue))
 ev-variable
     (branch (= (fetch env) (quote ())) variable-not-found)
-    (assign tmp (car env))
-    (assign key (car tmp))
-    (branch (= key exp) found-variable)
-    (assign env (cdr env))
+    (assign tmp (car (fetch env)))
+    (assign key (car (fetch tmp)))
+    (branch (= (fetch key) (fetch exp)) found-variable)
+    (assign env (cdr (fetch env)))
     (goto ev-variable)
 found-variable
-    (assign val (car (cdr tmp)))
+    (assign val (car (cdr (fetch tmp))))
     (goto (fetch continue))
 ev-application
     (assign unev (cdr (fetch exp)))
@@ -69,8 +69,17 @@ eval-last-arg
 accumulate-last-arg
     (restore argl)
     (assign argl (cons (fetch val) (fetch argl)))
+    (assign rargl (quote ()))
+    (goto reverse-argl)
+finish-reverse-argl
+    (assign argl (fetch rargl))
     (restore fun)
     (goto apply-dispatch)
+reverse-argl
+    (branch (= (fetch argl) (quote ())) finish-reverse-argl)
+    (assign rargl (cons (car (fetch argl)) (fetch rargl)))
+    (assign argl (cdr (fetch argl)))
+    (goto reverse-argl)
 apply-dispatch
     (branch (symbol? (fetch fun)) primitive-apply)
     (goto compound-apply)
@@ -129,10 +138,10 @@ eval-apply
     (restore continue)
     (goto eval-dispatch)
 extend-env
-    (branch (= (quote ()) par) eval-apply)
-    (assign env (cons (cons (car par) (cons (car argl) (quote ()))) env))
-    (assign par (cdr par))
-    (assign argl (cdr argl))
+    (branch (= (quote ()) (fetch par)) eval-apply)
+    (assign env (cons (cons (car (fetch par)) (cons (car (fetch argl)) (quote ()))) (fetch env)))
+    (assign par (cdr (fetch par)))
+    (assign argl (cdr (fetch argl)))
     (goto extend-env)
 done
 )

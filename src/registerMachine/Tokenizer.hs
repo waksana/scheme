@@ -5,6 +5,7 @@ module Tokenizer (
 where
 
 import Text.Parsec
+import Text.Read (readMaybe)
 import Data.Char
 
 data SExp = Symbol String
@@ -30,8 +31,11 @@ tokenToExp :: SExp -> SExp
 tokenToExp (Symbol str)
   | str == "#t" = Bool True   
   | str == "#f" = Bool False
-  | all isDigit str = Number (read str)
-  | otherwise = Symbol str
+  | otherwise = readExp str
+  where 
+    readExp str = case readMaybe str of
+      Nothing -> Symbol str
+      Just num -> Number num
 tokenToExp (List ts) = List $ map tokenToExp ts
 
 tokenizer = fmap tokenToExp . parse stoken ""
