@@ -17,10 +17,33 @@ raw-value
     (goto (fetch continue))
 ev-list
     (branch (= (car (fetch exp)) lambda) ev-lambda)
+    (branch (= (car (fetch exp)) cond) ev-cond)
     (goto ev-application)
 ev-lambda
     (assign val (cons (fetch env) (cdr (fetch exp))))
     (goto (fetch continue))
+ev-cond
+    (assign pairs (cdr (fetch exp)))
+    (save continue)
+ev-cond-loop
+    (branch (= (fetch pairs) (quote ())) cond-not-found)
+    (assign exp (car (car (fetch pairs))))
+    (save env)
+    (save pairs)
+    (assign continue ev-cond-check)
+    (goto eval-dispatch)
+ev-cond-check
+    (branch (fetch val) ev-cond-result)
+    (restore pairs)
+    (restore env)
+    (assign pairs (cdr (fetch pairs)))
+    (goto ev-cond-loop)
+ev-cond-result
+    (restore pairs)
+    (restore env)
+    (restore continue)
+    (assign exp (car (cdr (car (fetch pairs)))))
+    (goto eval-dispatch)
 ev-variable
     (branch (= (fetch env) (quote ())) variable-not-found)
     (assign tmp (car (fetch env)))

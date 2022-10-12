@@ -3,7 +3,8 @@ module Interpreter (
     initState,
     initStateWithContext,
     value,
-    debug
+    debug,
+    runDebug
 )
 where
 
@@ -122,6 +123,14 @@ debug state = do
     let next = step state
     getLine
     debug next
+
+runDebug :: State -> IO String
+runDebug state = do
+    print state
+    let next = step state
+    if null (pointer next)
+        then return "Finished"
+        else runDebug next
 
 value State { pointer=[], stack=stack, registers=registers, labelMap=labelMap } = State { pointer=[], stack=stack, registers=registers, labelMap=labelMap }
 value state = (value . step) state
