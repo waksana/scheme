@@ -3,8 +3,30 @@ scheme
 
 - [x] Implement Register Machine
 - [x] Use Register Machine instructions to interpret scheme
-- [x] Use Scheme to interpret scheme
+- [x] Use Scheme to interpret scheme, but the interpreter does not support multiple expressions for now
 - [ ] Compile scheme to Register Machine Instructions using scheme
+
+## Build and Run
+
+```sh
+# in registerMachine dir
+ghc main.hs
+
+# run the instruction and return the final state
+./main run ../instruction/schemeInterpreter.instruction ../scheme/fibonacci.scm
+
+# run and print all the state
+./main run show ../instruction/schemeInterpreter.instruction ../scheme/fibonacci.scm
+
+# run one step and press Enter to continue
+./main debug ../instruction/schemeInterpreter.instruction ../scheme/fibonacci.scm
+
+# tokenize the S-Expression
+./main tokenize ../instruction/gcd.instruction
+
+# parse instruction
+./main parse ../instruction/gcd.instruction
+```
 
 ## Register Machine
 
