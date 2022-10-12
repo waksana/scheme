@@ -10,15 +10,22 @@ import Tokenizer (tokenizer)
 fromRight (Left err) = error $ show err
 fromRight (Right b) = b
 
-initVM code = initState $ parseInstructions $ fromRight $ tokenizer code
+getInstructions :: String -> [Instruction]
+getInstructions = parseInstructions . fromRight . tokenizer
 
-debugFile filename = do
-    code <- readFile filename
-    debug $ initVM code
+initVM = initState . getInstructions
 
-runFile filename = do
+initVMWithContext code = initStateWithContext (getInstructions code) . value . initState . getInstructions
+
+debugFile filename loaderName = do
     code <- readFile filename
-    return (value $ initVM code)
+    loader <- readFile loaderName
+    debug $ initVMWithContext code loader
+
+runFile filename loaderName = do
+    code <- readFile filename
+    loader <- readFile loaderName
+    return (value $ initVMWithContext code loader)
 
 tokenizeFile filename = do
     code <- readFile filename
@@ -26,5 +33,5 @@ tokenizeFile filename = do
 
 parseFile filename = do
     code <- readFile filename
-    return (parseInstructions $ fromRight $ tokenizer code)
+    return (getInstructions code)
 

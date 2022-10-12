@@ -12,7 +12,14 @@ data SExp = Symbol String
           | Number Integer
           | Bool Bool
           | List [SExp]
-          deriving (Show, Eq)
+          deriving (Eq)
+
+instance Show SExp where
+  show (Symbol s) = s
+  show (Number n) = show n
+  show (Bool True) = "#t"
+  show (Bool False) = "#f"
+  show (List xs) = "(" ++ unwords (map show xs) ++ ")"
 
 symbolChar :: Parsec String () Char
 symbolChar = noneOf " \t\r\n()"

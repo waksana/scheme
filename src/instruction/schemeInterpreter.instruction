@@ -1,6 +1,4 @@
 (
-(assign exp (quote ((lambda (a b) (- a b)) 1 4)))
-(assign env (quote ()))
 (assign continue done)
 eval-dispatch
     (branch (list? (fetch exp)) ev-list)

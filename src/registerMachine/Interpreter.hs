@@ -1,6 +1,7 @@
 module Interpreter (
     step,
     initState,
+    initStateWithContext,
     value,
     debug
 )
@@ -105,6 +106,14 @@ initState instructions =
     { pointer = instructions,
       registers = Map.empty,
       stack = [],
+      labelMap = getLabelMap instructions Map.empty
+    }
+
+initStateWithContext instructions state =
+  State
+    { pointer = instructions,
+      registers = registers state,
+      stack = stack state,
       labelMap = getLabelMap instructions Map.empty
     }
 
